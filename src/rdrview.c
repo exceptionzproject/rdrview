@@ -490,6 +490,28 @@ static void parse_arguments(int argc, char *argv[])
 }
 
 /**
+ * Later versions of libxml2 don't provide xmlShellPrintNode(), so just copy
+ * it here.
+ */
+static void shell_print_node(xmlNodePtr node)
+{
+	FILE *fp;
+
+	if (!node)
+		return;
+	fp = stdout;
+
+	if (node->type == XML_DOCUMENT_NODE)
+		xmlDocDump(fp, (xmlDocPtr) node);
+	else if (node->type == XML_ATTRIBUTE_NODE)
+		xmlDebugDumpAttrList(fp, (xmlAttrPtr) node, 0);
+	else
+		xmlElemDump(fp, node->doc, node);
+
+	fprintf(fp, "\n");
+}
+
+/**
  * Save the HTML for a node to the given file
  */
 static void save_node_to_file(htmlNodePtr node, FILE *file)
@@ -501,10 +523,10 @@ static void save_node_to_file(htmlNodePtr node, FILE *file)
 	if (temp_stdout < 0)
 		fatal_errno();
 
-	/* Turn the file into stdout, so that xmlShellPrintNode() writes to it */
+	/* Turn the file into stdout, so that shell_print_node() writes to it */
 	if (dup2(fileno(file), STDOUT_FILENO) < 0)
 		fatal_errno();
-	xmlShellPrintNode(node);
+	shell_print_node(node);
 	fflush(stdout);
 
 	/* Now restore stdout */
@@ -1044,7 +1066,7 @@ static int run_dangerous(int input_fd, int output_fd)
 	attach_metadata(article);
 
 	if (options.flags & OPT_HTML)
-		xmlShellPrintNode(article);
+		shell_print_node(article);
 	else if (options.flags & OPT_METADATA)
 		print_metadata(doc);
 	else
