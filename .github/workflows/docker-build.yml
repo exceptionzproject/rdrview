@@ -1,0 +1,38 @@
+name: Build and Extract rdrview Binary
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ] 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: rdrview:latest
+          load: true   # Needed to extract the file
+
+      - name: Extract rdrview binary from Docker image
+        uses: shrink/actions-docker-extract@v3
+        with:
+          image: rdrview:latest
+          path: /usr/local/bin/rdrview
+          destination: extracted
+
+      - name: Upload rdrview binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rdrview-binary
+          path: extracted/rdrview
